@@ -20,5 +20,12 @@
 			"Name": "VRAdditions",
 			"LoadingPolicy": "Always"
 		}
+	],
+	"Modules": [
+		{
+			"Name": "VRAdditions",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
 	]
 }
