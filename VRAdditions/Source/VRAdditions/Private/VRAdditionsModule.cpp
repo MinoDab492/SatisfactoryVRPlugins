@@ -6,7 +6,7 @@
 #include <FactoryGame/Public/FGCharacterPlayer.h>
 #include "uevr_api/API.h"
 
-static const FString VR_INJECTOR_NAME = "VRInjector";
+static const FString UEVR_NAME = "UEVR";
 
 void LogToFile(const FString& text, bool append = true)
 {
@@ -22,14 +22,14 @@ void LogToFile(const FString& text, bool append = true)
 		flags);
 }
 
-static UEVR_PluginInitializeParam* VrInjectorParams;
+static UEVR_PluginInitializeParam* UEVRParams;
 
-class VRInjectorHeadMountedDisplayModule : public IHeadMountedDisplayModule
+class UEVRHeadMountedDisplayModule : public IHeadMountedDisplayModule
 {
 public:
 	virtual FString GetModuleKeyName() const override
 	{
-		return VR_INJECTOR_NAME;
+		return UEVR_NAME;
 	}
 
 	virtual bool IsHMDConnected() override
@@ -40,45 +40,44 @@ public:
 	virtual TSharedPtr<IXRTrackingSystem, ESPMode::ThreadSafe> CreateTrackingSystem() override
 	{
 		TSharedPtr<IXRTrackingSystem, ESPMode::ThreadSafe> DummyVal = nullptr;
-		// TODO bridge to VR injector here
+		// TODO bridge to UEVR here
 		return DummyVal;
 	}
 };
 
-static VRInjectorHeadMountedDisplayModule VrInjectorModule;
+static UEVRHeadMountedDisplayModule UEVRHmdModule;
 
-class InjectorDllLoader : public FRunnable
+class UEVRDllLoader : public FRunnable
 {
 	FRunnableThread* Thread;
 
 public:
-	InjectorDllLoader()
+	UEVRDllLoader()
 	{
-		Thread = FRunnableThread::Create(this, TEXT("InjectorDllLoader"));
-		LogToFile("Started injector DLL loader thread");
+		Thread = FRunnableThread::Create(this, TEXT("UEVRDllLoader"));
 	}
 
-	~InjectorDllLoader()
+	~UEVRDllLoader()
 	{
 		delete Thread;
 	}
 
 	virtual uint32 Run()
 	{
-		while (VrInjectorParams == nullptr)
+		while (UEVRParams == nullptr)
 		{
 			const HMODULE UnrealVRBackend = GetModuleHandleA("UnrealVRBackend.dll");
-			VrInjectorParams = (UEVR_PluginInitializeParam*) GetProcAddress(UnrealVRBackend, "g_plugin_initialize_param");
+			UEVRParams = (UEVR_PluginInitializeParam*) GetProcAddress(UnrealVRBackend, "g_plugin_initialize_param");
 
-			if (!VrInjectorParams)
+			if (!UEVRParams)
 			{
-				LogToFile("Waiting for VR injector DLL...");
+				LogToFile("Waiting for UEVR DLL...");
 				FPlatformProcess::Sleep(2);
 			}
 		}
-		LogToFile("VR injector dll loaded!");
+		LogToFile("UEVR dll loaded!");
 
-		while (!VrInjectorParams->vr->is_hmd_active())
+		while (!UEVRParams->vr->is_hmd_active())
 		{
 			LogToFile("Waiting for HMD...");
 			FPlatformProcess::Sleep(2);
@@ -86,14 +85,14 @@ public:
 
 		LogToFile("HMD is active!");
 
-		int HmdIndex = VrInjectorParams->vr->get_hmd_index();
+		int HmdIndex = UEVRParams->vr->get_hmd_index();
 		LogToFile("HMD index: " + FString::FromInt(HmdIndex));
 
 		while (true)
 		{
 			UEVR_Vector3f Position;
 			UEVR_Quaternionf Rotation;
-			VrInjectorParams->vr->get_pose(HmdIndex, &Position, &Rotation);
+			UEVRParams->vr->get_pose(HmdIndex, &Position, &Rotation);
 			FString PositionStr = FString::Printf(TEXT("[%f,%f,%f]"), Position.x, Position.y, Position.z);
 			LogToFile("HMD position: " + PositionStr);
 			FPlatformProcess::Sleep(2);
@@ -102,22 +101,22 @@ public:
 		return 0;
 	}
 };
-static InjectorDllLoader* InjectorLoader;
+static UEVRDllLoader* UEVRLoader;
 
 void FVRAdditionsModule::StartupModule()
 {
 	LogToFile("Initialize VRAdditions", false);
 
-	GConfig->SetFloat(TEXT("HMDPluginPriority"), *VR_INJECTOR_NAME, 100, GEngineIni);
-	float vrInjectorPriority;
-	GConfig->GetFloat(TEXT("HMDPluginPriority"), *VR_INJECTOR_NAME, vrInjectorPriority, GEngineIni);
-	LogToFile("VR injector priority: " + FString::SanitizeFloat(vrInjectorPriority));
+	GConfig->SetFloat(TEXT("HMDPluginPriority"), *UEVR_NAME, 100, GEngineIni);
+	float uevrPriority;
+	GConfig->GetFloat(TEXT("HMDPluginPriority"), *UEVR_NAME, uevrPriority, GEngineIni);
+	LogToFile("UEVR priority: " + FString::SanitizeFloat(uevrPriority));
 
 	FName Type = IHeadMountedDisplayModule::GetModularFeatureName();
 	IModularFeatures& ModularFeatures = IModularFeatures::Get();
-	ModularFeatures.RegisterModularFeature(Type, &VrInjectorModule);
+	ModularFeatures.RegisterModularFeature(Type, &UEVRHmdModule);
 
-	InjectorLoader = new InjectorDllLoader();
+	UEVRLoader = new UEVRDllLoader();
 
 // #if !WITH_EDITOR // if editor has trouble launching, surround hook calls with this
 // #endif
@@ -129,7 +128,7 @@ void FVRAdditionsModule::StartupModule()
 
 void FVRAdditionsModule::ShutdownModule()
 {
-	delete InjectorLoader;
+	delete UEVRLoader;
 }
 
 IMPLEMENT_GAME_MODULE(FVRAdditionsModule, VRAdditions);
