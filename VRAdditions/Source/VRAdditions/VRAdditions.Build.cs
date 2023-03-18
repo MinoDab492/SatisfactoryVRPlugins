@@ -6,7 +6,8 @@ public class VRAdditions : ModuleRules
 {
     public VRAdditions(ReadOnlyTargetRules Target) : base(Target)
     {
-        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+	    PrivateDependencyModuleNames.AddRange(new string[] {"HeadMountedDisplay"});
+	    PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(new string[] {
             "Core", "CoreUObject",
