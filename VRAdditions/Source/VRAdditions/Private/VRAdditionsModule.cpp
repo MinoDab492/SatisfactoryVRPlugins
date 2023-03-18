@@ -85,19 +85,6 @@ public:
 
 		LogToFile("HMD is active!");
 
-		int HmdIndex = UEVRParams->vr->get_hmd_index();
-		LogToFile("HMD index: " + FString::FromInt(HmdIndex));
-
-		while (true)
-		{
-			UEVR_Vector3f Position;
-			UEVR_Quaternionf Rotation;
-			UEVRParams->vr->get_pose(HmdIndex, &Position, &Rotation);
-			FString PositionStr = FString::Printf(TEXT("[%f,%f,%f]"), Position.x, Position.y, Position.z);
-			LogToFile("HMD position: " + PositionStr);
-			FPlatformProcess::Sleep(2);
-		}
-
 		return 0;
 	}
 };
@@ -108,9 +95,6 @@ void FVRAdditionsModule::StartupModule()
 	LogToFile("Initialize VRAdditions", false);
 
 	GConfig->SetFloat(TEXT("HMDPluginPriority"), *UEVR_NAME, 100, GEngineIni);
-	float uevrPriority;
-	GConfig->GetFloat(TEXT("HMDPluginPriority"), *UEVR_NAME, uevrPriority, GEngineIni);
-	LogToFile("UEVR priority: " + FString::SanitizeFloat(uevrPriority));
 
 	FName Type = IHeadMountedDisplayModule::GetModularFeatureName();
 	IModularFeatures& ModularFeatures = IModularFeatures::Get();
