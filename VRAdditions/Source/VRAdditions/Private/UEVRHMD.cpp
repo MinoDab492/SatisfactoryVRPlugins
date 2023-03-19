@@ -28,24 +28,6 @@ void UEVRHMD::AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int32& Y, u
 FMatrix UEVRHMD::GetStereoProjectionMatrix(const EStereoscopicPass StereoPassType) const
 {
 	return FMatrix::Identity;
-
-	/*const float ProjectionCenterOffset = 0.151976421f;
-	const float PassProjectionOffset = (StereoPassType == eSSP_LEFT_EYE) ? ProjectionCenterOffset : -ProjectionCenterOffset;
-
-	const float HalfFov = 2.19686294f / 2.f;
-	const float InWidth = 640.f;
-	const float InHeight = 480.f;
-	const float XS = 1.0f / tan(HalfFov);
-	const float YS = InWidth / tan(HalfFov) / InHeight;
-
-	const float InNearZ = GNearClippingPlane;
-	return FMatrix(
-		FPlane(XS,                      0.0f,								    0.0f,							0.0f),
-		FPlane(0.0f,					YS,	                                    0.0f,							0.0f),
-		FPlane(0.0f,	                0.0f,								    0.0f,							1.0f),
-		FPlane(0.0f,					0.0f,								    InNearZ,						0.0f))
-
-		* FTranslationMatrix(FVector(PassProjectionOffset,0,0));*/
 }
 
 bool UEVRHMD::IsHMDConnected()
@@ -132,14 +114,15 @@ bool UEVRHMD::EnumerateTrackedDevices(TArray<int32>& OutDevices, EXRTrackedDevic
 
 bool UEVRHMD::GetCurrentPose(int32 DeviceId, FQuat& OutOrientation, FVector& OutPosition)
 {
-	if (DeviceId > MAX_DEVICE_ID || !IsInitialized())
+	auto* VR = GetVR();
+	if (DeviceId > MAX_DEVICE_ID || !VR)
 	{
 		return false;
 	}
 
 	UEVR_Vector3f Position;
 	UEVR_Quaternionf Orientation;
-	GetVR()->get_pose(DeviceId, &Position, &Orientation);
+	VR->get_pose(DeviceId, &Position, &Orientation);
 	OutOrientation = FQuat{ Orientation.z, -Orientation.x, -Orientation.y, Orientation.w };
 	OutPosition = FVector{ Position.z, -Position.x, -Position.y };
 	return true;
@@ -152,6 +135,11 @@ float UEVRHMD::GetWorldToMetersScale() const
 
 void UEVRHMD::ResetOrientationAndPosition(float Yaw)
 {
+	auto* VR = GetVR();
+	if (VR)
+	{
+		VR->recenter_view();
+	}
 }
 
 const UEVR_VRData* UEVRHMD::GetVR() const
@@ -161,9 +149,4 @@ const UEVR_VRData* UEVRHMD::GetVR() const
 		return UEVRParams->vr;
 	}
 	return nullptr;
-}
-
-bool UEVRHMD::IsInitialized() const
-{
-	return UEVRParams && GetVR()->is_hmd_active();
 }

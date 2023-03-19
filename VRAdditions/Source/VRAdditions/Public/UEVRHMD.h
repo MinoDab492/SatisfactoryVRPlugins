@@ -31,7 +31,6 @@ public:
 
 private:
 	const UEVR_VRData* GetVR() const;
-	bool IsInitialized() const;
 
 	UEVR_PluginInitializeParam* UEVRParams = nullptr;
 };

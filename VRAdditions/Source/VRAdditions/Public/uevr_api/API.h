@@ -142,6 +142,7 @@ typedef struct {
     void (*log_warn)(const char* format, ...);
     void (*log_info)(const char* format, ...);
     bool (*is_drawing_ui)();
+    bool (*remove_callback)(void* cb);
 } UEVR_PluginFunctions;
 
 typedef struct {
@@ -264,6 +265,8 @@ typedef struct {
     bool (*is_using_controllers)();
 
     unsigned int (*get_lowest_xinput_index)();
+
+    void (*recenter_view)();
 } UEVR_VRData;
 
 typedef struct {
