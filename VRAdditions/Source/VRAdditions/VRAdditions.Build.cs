@@ -1,6 +1,4 @@
 using UnrealBuildTool;
-using System.IO;
-using System;
 
 public class VRAdditions : ModuleRules
 {
@@ -26,8 +24,8 @@ public class VRAdditions : ModuleRules
             "AnimGraphRuntime",
             "Slate", "SlateCore",
             "Json",
-	    "AbstractInstance"
-            });
+			"AbstractInstance", "HeadMountedDisplay"
+		});
 
 
         if (Target.Type == TargetRules.TargetType.Editor) {

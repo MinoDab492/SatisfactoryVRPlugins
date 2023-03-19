@@ -4,25 +4,14 @@
 #include "FGPlayerController.h"
 #include "IHeadMountedDisplayModule.h"
 #include <FactoryGame/Public/FGCharacterPlayer.h>
+#include "UEVRHMD.h"
+#include "Logging.h"
 #include "uevr_api/API.h"
 
 static const FString UEVR_NAME = "UEVR";
 
-void LogToFile(const FString& text, bool append = true)
-{
-	static FString fileName("VRAdditions.log");
-
-	FString time = FDateTime::Now().ToString();
-	FString textResult = time + ": " + text + FString("\n");
-	uint32 flags = append ? FILEWRITE_Append : FILEWRITE_None;
-	FFileHelper::SaveStringToFile(textResult,
-		*fileName,
-		FFileHelper::EEncodingOptions::AutoDetect,
-		&IFileManager::Get(),
-		flags);
-}
-
 static UEVR_PluginInitializeParam* UEVRParams;
+TSharedPtr<UEVRHMD, ESPMode::ThreadSafe> HMD;
 
 class UEVRHeadMountedDisplayModule : public IHeadMountedDisplayModule
 {
@@ -39,9 +28,8 @@ public:
 
 	virtual TSharedPtr<IXRTrackingSystem, ESPMode::ThreadSafe> CreateTrackingSystem() override
 	{
-		TSharedPtr<IXRTrackingSystem, ESPMode::ThreadSafe> DummyVal = nullptr;
-		// TODO bridge to UEVR here
-		return DummyVal;
+		HMD = MakeShared<UEVRHMD, ESPMode::ThreadSafe>();
+		return HMD;
 	}
 };
 
@@ -76,6 +64,7 @@ public:
 			}
 		}
 		LogToFile("UEVR dll loaded!");
+		HMD->SetUEVRParams(UEVRParams);
 
 		while (!UEVRParams->vr->is_hmd_active())
 		{
