@@ -140,8 +140,8 @@ bool UEVRHMD::GetCurrentPose(int32 DeviceId, FQuat& OutOrientation, FVector& Out
 	UEVR_Vector3f Position;
 	UEVR_Quaternionf Orientation;
 	GetVR()->get_pose(DeviceId, &Position, &Orientation);
-	OutOrientation = FQuat{ Orientation.x, Orientation.y, Orientation.z, Orientation.w };
-	OutPosition = FVector{ Position.x, Position.y, Position.z };
+	OutOrientation = FQuat{ Orientation.z, -Orientation.x, -Orientation.y, Orientation.w };
+	OutPosition = FVector{ Position.z, -Position.x, -Position.y };
 	return true;
 }
 
