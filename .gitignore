@@ -72,3 +72,14 @@ Plugins/*/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+### Other plugins
+AbstractInstance
+Alpakit
+ExampleMod
+SML
+SMLEditor
+Wwise
+VRAdditions/Saved
+VRAdditions/Binaries
+VRAdditions/Intermediate
