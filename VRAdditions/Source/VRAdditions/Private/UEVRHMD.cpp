@@ -1,6 +1,7 @@
 ﻿#include "UEVRHMD.h"
 
 #include "Logging.h"
+#include "Math.h"
 
 const int MAX_DEVICE_ID = 2;
 
@@ -123,8 +124,8 @@ bool UEVRHMD::GetCurrentPose(int32 DeviceId, FQuat& OutOrientation, FVector& Out
 	UEVR_Vector3f Position;
 	UEVR_Quaternionf Orientation;
 	VR->get_pose(DeviceId, &Position, &Orientation);
-	OutOrientation = FQuat{ Orientation.z, -Orientation.x, -Orientation.y, Orientation.w };
-	OutPosition = FVector{ Position.z, -Position.x, -Position.y };
+	OutOrientation = UEVRQuatToFQuat(Orientation);
+	OutPosition = UEVRVecToFVec(Position);
 	return true;
 }
 
