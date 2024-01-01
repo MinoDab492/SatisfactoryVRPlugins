@@ -1,7 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-using UnrealBuildTool;
 using System.IO;
+using System.Linq;
+using EpicGames.Core;
 
 namespace UnrealBuildTool.Rules
 {
@@ -14,23 +15,16 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"OpenXRHMD/Private",
                     EngineDir + "/Source/ThirdParty/OpenXR/include",
-                    EngineDir + "/Source/Runtime/Renderer/Private",
-                    EngineDir + "/Source/Runtime/OpenGLDrv/Private",
-                    EngineDir + "/Source/Runtime/VulkanRHI/Private",
+					System.IO.Path.Combine(GetModuleDirectory("Renderer"), "Private"),
 					// ... add other private include paths required here ...
 				}
 				);
 
-            if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
-            {
-                PrivateIncludePaths.Add(EngineDir + "/Source/Runtime/VulkanRHI/Private/Windows");
-            }
-            else if (Target.Platform != UnrealTargetPlatform.HoloLens)
-            {
-                PrivateIncludePaths.Add(EngineDir + "/Source/Runtime/VulkanRHI/Private/" + Target.Platform);
-            }
+			PublicIncludePathModuleNames.Add("OpenXR");
 
-            PrivateDependencyModuleNames.AddRange(
+            PublicDependencyModuleNames.Add("HeadMountedDisplay");
+
+			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
@@ -42,63 +36,48 @@ namespace UnrealBuildTool.Rules
 					"RenderCore",
 					"Renderer",
 					"RenderCore",
-                    "HeadMountedDisplay",
                     "Slate",
                     "SlateCore",
 					"AugmentedReality",
+					"EngineSettings",
 				}
 				);
 
 			if (Target.bBuildEditor == true)
             {
+				PrivateDependencyModuleNames.Add("EditorFramework");
                 PrivateDependencyModuleNames.Add("UnrealEd");
 			}
 
-            if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.HoloLens)
+            if (Target.Platform == UnrealTargetPlatform.Win64)
             {
                 PrivateDependencyModuleNames.AddRange(new string[] {
 					"D3D11RHI",
 					"D3D12RHI"
 				});
 
-                // Required for some private headers needed for the rendering support.
-                PrivateIncludePaths.AddRange(
-                    new string[] {
-                            Path.Combine(EngineDir, @"Source\Runtime\Windows\D3D11RHI\Private"),
-                            Path.Combine(EngineDir, @"Source\Runtime\Windows\D3D11RHI\Private\Windows"),
-							Path.Combine(EngineDir, @"Source\Runtime\D3D12RHI\Private"),
-							Path.Combine(EngineDir, @"Source\Runtime\D3D12RHI\Private\Windows")
-								});
-
-                AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
-				AddEngineThirdPartyPrivateStaticDependencies(Target, "DX12");
-				AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAPI");
-                AddEngineThirdPartyPrivateStaticDependencies(Target, "AMD_AGS");
-                AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAftermath");
-				AddEngineThirdPartyPrivateStaticDependencies(Target, "IntelMetricsDiscovery");
-				AddEngineThirdPartyPrivateStaticDependencies(Target, "IntelExtensionsFramework");
+                AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11", "DX12");
             }
 
-            if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
+            if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Android)
             {
-                PrivateDependencyModuleNames.AddRange(new string[] {
-                    "OpenGLDrv",
-                });
+                PrivateDependencyModuleNames.Add("OpenGLDrv");
 
                 AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
 			}
 
-            if (Target.Platform != UnrealTargetPlatform.HoloLens)
+			if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Android  
+			    || Target.IsInPlatformGroup(UnrealPlatformGroup.Linux))
             {
-                PrivateDependencyModuleNames.AddRange(new string[] {
-                    "VulkanRHI"
-                });
+                PrivateDependencyModuleNames.Add("VulkanRHI");
 
                 AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
-            }
+			}
 
-            PublicDependencyModuleNames.Add("HeadMountedDisplay");
-			PublicIncludePathModuleNames.Add("OpenXR");
+			if (Target.Platform == UnrealTargetPlatform.Android)
+			{
+				PrivateDependencyModuleNames.Add("OculusOpenXRLoader");
+			}
 		}
 	}
 }

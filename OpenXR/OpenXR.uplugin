@@ -2,60 +2,68 @@
 	"FileVersion": 3,
 	"Version": 1,
 	"VersionName": "1.0",
-	"SemVersion": "1.0.0",
-	"AcceptsAnyRemoteVersion": true,
 	"FriendlyName": "OpenXR",
 	"Description": "OpenXR is an open VR/AR standard",
-	"Category": "Modding",
+	"Category": "Virtual Reality",
 	"CreatedBy": "Epic Games, Inc.",
-	"CreatedByURL": "http://epicgames.com",
+	"CreatedByURL": "https://epicgames.com",
 	"DocsURL": "",
 	"MarketplaceURL": "",
 	"SupportURL": "",
 	"EnabledByDefault": false,
-	"CanContainContent": false,
-	"IsBetaVersion": true,
-	"IsExperimentalVersion": false,
+	"CanContainContent": true,
+	"IsBetaVersion": false,
 	"Installed": false,
 	"SupportedTargetPlatforms": [
-		"Win32",
 		"Win64",
-		"Android",
-		"HoloLens"
+		"Linux",
+		"Android"
 	],
 	"Modules": [
 		{
 			"Name": "OpenXRHMD",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
-			"WhitelistPlatforms": [
-				"Win32",
+			"PlatformAllowList": [
 				"Win64",
-				"Android",
-				"HoloLens"
+				"Linux",
+				"Android"
 			]
 		},
 		{
 			"Name": "OpenXRInput",
 			"Type": "Runtime",
 			"LoadingPhase": "PostEngineInit",
-			"WhitelistPlatforms": [
-				"Win32",
+			"PlatformAllowList": [
 				"Win64",
-				"Android",
-				"HoloLens"
+				"Linux",
+				"Android"
 			]
 		},
 		{
 			"Name": "OpenXRAR",
 			"Type": "Runtime",
 			"LoadingPhase": "PostConfigInit",
-			"WhitelistPlatforms": [
-				"Win32",
+			"PlatformAllowList": [
 				"Win64",
-				"Android",
-				"HoloLens"
+				"Linux",
+				"Android"
 			]
+		},
+		{
+			"Name": "OpenXREditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [
+				"Win64",
+				"Linux"
+			]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "EnhancedInput",
+			"Enabled": true
 		}
 	]
 }

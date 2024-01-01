@@ -3,7 +3,7 @@
 #pragma once
 
 #include "IOpenXRARTrackedGeometryHolder.h"
-#include "IOpenXRHMDPlugin.h"
+#include "IOpenXRHMDModule.h"
 #include "ARSystemSupportBase.h"
 #include "ARTraceResult.h"
 #include "ARPin.h"
@@ -204,6 +204,10 @@ public:
  * @param Collector The collector of referenced objects.
  */
 	virtual void AddReferencedObjects(FReferenceCollector& Collector);
+	virtual FString GetReferencerName() const override
+	{
+		return TEXT("FOpenXRARSystem");
+	}
 
 private:
 	FOpenXRHMD* TrackingSystem;
@@ -234,6 +238,7 @@ private:
 	virtual void RemovePlane(FGuid InGuidPlaneUpdate);
 	virtual void EndMeshUpdates();
 	virtual void ObjectUpdated(FOpenXRARTrackedGeometryData* InUpdate);
+	virtual void ObjectUpdated(TSharedPtr<FOpenXRARTrackedGeometryData> InUpdate);
 
 	void RemoveMesh_GameThread(FGuid InGuidMeshUpdate);
 	void ProcessMeshUpdates_GameThread();
@@ -241,7 +246,7 @@ private:
 	void ProcessSUPlaneUpdates_GameThread();
 	void AddOrUpdatePlane_GameThread(FOpenXRPlaneUpdate* CurrentPlane);
 	void OnSpawnARActor(AARActor* NewARActor, UARComponent* NewARComponent, FGuid NativeID);
-	void OnObjectUpdated_GameThread(FOpenXRARTrackedGeometryData* InUpdate);
+	void OnObjectUpdated_GameThread(TSharedPtr<FOpenXRARTrackedGeometryData> InUpdate);
 
 	/** Removes all tracked geometries, marking them as not tracked and sending the delegate event */
 	void ClearTrackedGeometries();
@@ -272,14 +277,19 @@ private:
 	virtual void ARTrackedGeometryUpdated(FOpenXRARTrackedGeometryData* InData);
 	virtual void ARTrackedGeometryRemoved(FOpenXRARTrackedGeometryData* InData);
 
-	void ARTrackedGeometryAdded_GameThread(FOpenXRARTrackedGeometryData* InData);
-	void ARTrackedGeometryUpdated_GameThread(FOpenXRARTrackedGeometryData* InData);
-	void ARTrackedGeometryRemoved_GameThread(FOpenXRARTrackedGeometryData* InData);
+	virtual void ARTrackedGeometryAdded(TSharedPtr<FOpenXRARTrackedGeometryData> InData);
+	virtual void ARTrackedGeometryUpdated(TSharedPtr<FOpenXRARTrackedGeometryData> InData);
+	virtual void ARTrackedGeometryRemoved(TSharedPtr<FOpenXRARTrackedGeometryData> InData);
+
+	void ARTrackedGeometryAdded_GameThread(TSharedPtr<FOpenXRARTrackedGeometryData> InData);
+	void ARTrackedGeometryUpdated_GameThread(TSharedPtr<FOpenXRARTrackedGeometryData> InData);
+	void ARTrackedGeometryRemoved_GameThread(TSharedPtr<FOpenXRARTrackedGeometryData> InData);
 
 	class IOpenXRCustomCaptureSupport* QRCapture = nullptr;
 	class IOpenXRCustomCaptureSupport* CamCapture = nullptr;
 	class IOpenXRCustomCaptureSupport* SpatialMappingCapture = nullptr;
 	class IOpenXRCustomCaptureSupport* SceneUnderstandingCapture = nullptr;
+	class IOpenXRCustomCaptureSupport* HandMeshCapture = nullptr;
 
 	TArray<IOpenXRCustomCaptureSupport*> CustomCaptureSupports;
 };

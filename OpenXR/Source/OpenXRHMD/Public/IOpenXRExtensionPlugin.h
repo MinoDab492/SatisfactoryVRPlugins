@@ -8,7 +8,8 @@
 #include "ARTextures.h"
 #include "ARTraceResult.h"
 #include "DefaultSpectatorScreenController.h"
-
+#include "UObject/SoftObjectPath.h"
+#include "GenericPlatform/IInputInterface.h"
 #include <openxr/openxr.h>
 
 class IOpenXRCustomAnchorSupport
@@ -99,6 +100,15 @@ public:
 	}
 };
 
+// Note: We may refactor to put OpenXRInput into the OpenXRHMD module so we can get rid of this interface.
+class IOpenXRInputModule
+{
+public:
+	virtual ~IOpenXRInputModule() {}
+
+	virtual void OnBeginSession() = 0;
+	virtual void OnDestroySession() = 0;
+};
 
 class IOpenXRExtensionPlugin : public IModularFeature
 {
@@ -114,20 +124,59 @@ public:
 	/**
 	* Register module as an extension on startup.  
 	* It is common to do this in StartupModule of your IModuleInterface class (which may also be the class that implements this interface).
-	* The module's LoadingPhase must be PostInitConfig or earlier because OpenXRHMD will look for these after it is loaded in that phase.
+	* The module's LoadingPhase must be PostConfigInit or earlier because OpenXRHMD will look for these after it is loaded in that phase.
 	*/
-	virtual void RegisterOpenXRExtensionModularFeature()
+	void RegisterOpenXRExtensionModularFeature()
 	{
 		IModularFeatures::Get().RegisterModularFeature(GetModularFeatureName(), this);
 	}
 
+	void UnregisterOpenXRExtensionModularFeature()
+	{
+		IModularFeatures::Get().UnregisterModularFeature(GetModularFeatureName(), this);
+	}
+
+	virtual FString GetDisplayName()
+	{
+		return FString(TEXT("OpenXRExtensionPlugin"));
+	}
+
 	/**
-	* Optionally provide a custom loader for the OpenXR plugin.
+	* Optionally use a custom loader (via GetInstanceProcAddr) for the OpenXR plugin.
 	*/
 	virtual bool GetCustomLoader(PFN_xrGetInstanceProcAddr* OutGetProcAddr)
 	{
 		return false;
 	}
+
+	/**
+	* Experimental: Optionally hand off the loader/plugin GetInstanceProcAddr to an extension plugin
+	* to support API layering. Returns true if plugin is wrapping API. Layers can chain by using
+	* received GetProcAddr to hand off API calls.
+	*/
+	virtual bool InsertOpenXRAPILayer(PFN_xrGetInstanceProcAddr& InOutGetProcAddr)
+	{
+		return false;
+	}
+
+	/**
+	* Indicates that the device we're currently running does not support a spectator view.
+	* This will only be called once at initialization and should only return a result based for the current device the engine is running on.
+	*/
+	virtual bool IsStandaloneStereoOnlyDevice()
+	{
+		return false;
+	}
+	
+	/**
+	* Optionally provide a custom render bridge for the OpenXR plugin.
+	* Note: this returns a pointer to a new instance allocated with "new".  Calling code is responsible for eventually deleting it.
+	*/
+	virtual class FOpenXRRenderBridge* GetCustomRenderBridge(XrInstance InInstance)
+	{
+		return nullptr;
+	}
+
 
 	/**
 	* Fill the array with extensions required by the plugin
@@ -156,6 +205,27 @@ public:
 	}
 
 	/**
+	 * Set the output parameters to provide a path to an asset in the plugin content folder that visualizes
+	 * the controller in the hand represented by the user path.
+	 * While it's possible to provide controller models for other interaction profiles, you should only provide
+	 * controller models for the interaction profile provided by the plugin.
+	 * 
+	 * NOTE: All models that can be returned also need to be returned in GetControllerModels() so they're included
+	 * when cooking a project. If this is skipped the controllers won't show up in packaged projects
+	 */
+	virtual bool GetControllerModel(XrInstance InInstance, XrPath InInteractionProfile, XrPath InDevicePath, FSoftObjectPath& OutPath)
+	{
+		return false;
+	}
+
+	/**
+	 * Add all asset paths that need to be packaged for cooking.
+	 */
+	virtual void GetControllerModelsForCooking(TArray<FSoftObjectPath>& OutPaths)
+	{
+	}
+
+	/**
 	* Set a spectator screen controller specific to the platform
 	* If true is returned and OutSpectatorScreenController is nullptr, spectator screen will be disabled
 	* If false is returned a default spectator screen controller will be created
@@ -166,10 +236,31 @@ public:
 	}
 
 	/**
-	* Add any actions provided by the plugin to Actions with suggested bindings.
+	* Add any actions provided by the plugin to Actions.
 	* This allows a plugin to 'hard code' an action so that the plugin can use it.
 	*/
+	UE_DEPRECATED(5.1, "Use Enhanced Input through IMotionController::SetPlayerMappableInputConfig instead.")
 	virtual void AddActions(XrInstance Instance, TFunction<XrAction(XrActionType InActionType, const FName& InName, const TArray<XrPath>& InSubactionPaths)> AddAction)
+	{
+	}
+
+	UE_DEPRECATED(5.1, "Functionality moved to AttachActionSets().")
+	virtual void AddActionSets(TArray<XrActiveActionSet>& OutActionSets)
+	{
+	}
+
+	/**
+	* Add any action sets provided by the plugin to be attached as active to the session
+	* This allows a plugin to manage a custom actionset that will be active in xrSyncActions
+	*/
+	virtual void AttachActionSets(TSet<XrActionSet>& OutActionSets)
+	{
+	}
+
+	/**
+	* Specify action sets to be included in XrActionsSyncInfo::activeActionSets.
+	*/
+	virtual void GetActiveActionSetsForSync(TArray<XrActiveActionSet>& OutActiveSets)
 	{
 	}
 
@@ -185,9 +276,21 @@ public:
 
 	/** Get custom capture interface if provided by this extension. */
 	virtual IOpenXRCustomCaptureSupport* GetCustomCaptureSupport(const EARCaptureType CaptureType) { return nullptr; }
+
+	virtual void* OnEnumerateViewConfigurationViews(XrInstance InInstance, XrSystemId InSystem, XrViewConfigurationType InViewConfigurationType, uint32_t InViewIndex, void* InNext)
+	{
+		return InNext;
+	}
+
+	virtual const void* OnLocateViews(XrSession InSession, XrTime InDisplayTime, const void* InNext)
+	{
+		return InNext;
+	}
+
 	/**
 	* Callback to provide extra view configurations that should be rendered in the main render pass
 	*/
+	UE_DEPRECATED(5.2, "Support for new view configurations should be added to FOpenXRHMD instead.")
 	virtual void GetViewConfigurations(XrSystemId InSystem, TArray<XrViewConfigurationView>& OutViews)
 	{
 	}
@@ -195,6 +298,7 @@ public:
 	/**
 	* Callback to provide the pose and fov of each view that was provided in GetViewConfigurations
 	*/
+	UE_DEPRECATED(5.2, "Support for new view configurations should be added to FOpenXRHMD instead.")
 	virtual void GetViewLocations(XrSession InSession, XrTime InDisplayTime, XrSpace InViewSpace, TArray<XrView>& OutViews)
 	{
 	}
@@ -204,9 +308,17 @@ public:
 	* Remember to assign InNext to the next pointer of your struct or otherwise you may break the next chain.
 	*/
 
-	virtual const void* OnCreateInstance(class IOpenXRHMDPlugin* InPlugin, const void* InNext)
+	virtual const void* OnCreateInstance(class IOpenXRHMDModule* InModule, const void* InNext)
 	{
 		return InNext;
+	}
+
+	virtual void PostCreateInstance(XrInstance InInstance)
+	{
+	}
+
+	virtual void BindExtensionPluginDelegates(class IOpenXRExtensionPluginDelegates& OpenXRHMD)
+	{
 	}
 
 	virtual const void* OnGetSystem(XrInstance InInstance, const void* InNext)
@@ -223,9 +335,17 @@ public:
 		return InNext;
 	}
 
+	virtual void PostCreateSession(XrSession InSession)
+	{
+	}
+
 	virtual const void* OnBeginSession(XrSession InSession, const void* InNext)
 	{
 		return InNext;
+	}
+
+	virtual void OnDestroySession(XrSession InSession)
+	{
 	}
 
 	// OpenXRHMD::OnBeginRendering_GameThread
@@ -235,6 +355,11 @@ public:
 	}
 
 	// OpenXRHMD::OnBeginRendering_RenderThread
+	virtual void OnBeginRendering_RenderThread(XrSession InSession)
+	{
+	}
+
+	// OpenXRHMD::OnBeginRendering_RHIThread
 	virtual const void* OnBeginFrame(XrSession InSession, XrTime DisplayTime, const void* InNext)
 	{
 		return InNext;
@@ -277,6 +402,17 @@ public:
 	{
 	}
 
+	
+	virtual void OnSetDeviceProperty(XrSession InSession, int32 ControllerId, const FInputDeviceProperty* Property)
+	{
+	}
+
+	/** Update OpenXRHMD to use reference space types other than view, local, and stage. */
+	virtual bool UseCustomReferenceSpaceType(XrReferenceSpaceType& OutReferenceSpaceType)
+	{
+		return false;
+	}
+	
 	/**
 	 * Start the AR system.
 	 *

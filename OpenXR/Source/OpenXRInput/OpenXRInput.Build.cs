@@ -33,12 +33,16 @@ namespace UnrealBuildTool.Rules
                 }
                 );
 
-            AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenXR");
+			PublicDependencyModuleNames.Add("EnhancedInput");
+
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenXR");
 
             if (Target.bBuildEditor == true)
             {
+				PrivateDependencyModuleNames.Add("EditorFramework");
                 PrivateDependencyModuleNames.Add("UnrealEd");
-            }
+				PrivateDependencyModuleNames.Add("InputEditor");
+			}
         }
     }
 }
