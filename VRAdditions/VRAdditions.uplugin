@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "1.0",
+	"VersionName": "1.0.0",
 	"SemVersion": "1.0.0",
 	"FriendlyName": "VRAdditions",
 	"Description": "A mod designed to make updates to things such as the UI to make it easier to use with Preydog's Unreal Engine Flatscreen to VR utiity",
@@ -20,5 +20,15 @@
 			"Name": "VRAdditions",
 			"LoadingPolicy": "Always"
 		}
-	]
+	],
+	"Plugins": [
+		{
+			"Name": "SML",
+			"Enabled": true,
+			"SemVersion": "^3.7.0",
+			"BasePlugin": false
+		}
+	],
+	"RemoteVersionRange": "",
+	"AcceptsAnyRemoteVersion": false
 }
